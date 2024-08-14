@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "nodemon --trace-deprecation index.js ",
     "client": "npm start --prefix ../frontend",
     "dev": "concurrently \"npm run start\" \"npm run client\""
   },
@@ -16,6 +16,7 @@
     "express": "^4.19.2",
     "firebase": "^10.12.5",
     "firebase-admin": "^12.3.1",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "punycode": "^2.3.1"
   }
 }
