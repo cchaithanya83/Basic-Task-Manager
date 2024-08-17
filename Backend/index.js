@@ -2,32 +2,23 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const admin = require("firebase-admin");
-const {
-  getFirestore,
-  Timestamp,
-  FieldValue,
-  Filter,
-} = require("firebase-admin/firestore");
-const firebase = require("firebase/app");
-const firebaseauth = require("firebase/auth");
+require("dotenv").config(); 
+
+const serviceAccount = require("./auth/serviceAccountKey.json");
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDX5stClUDXjcMYavHDf2Yl0xu8UancXjc",
-  authDomain: "basic-task-manager-b65b3.firebaseapp.com",
-  projectId: "basic-task-manager-b65b3",
-  storageBucket: "basic-task-manager-b65b3.appspot.com",
-  messagingSenderId: "73242926",
-  appId: "1:73242926:web:5d86331c5a29aa90f782bf",
-  measurementId: "G-ZT0W4J0BYY",
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID,
 };
-const serviceAccount = require("./auth/serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
-
-const firebaseapp = firebase.initializeApp(firebaseConfig);
-const firebaseau = firebaseauth.initializeAuth(firebaseapp);
 
 const db = admin.firestore();
 const app = express();
@@ -36,16 +27,17 @@ app.use(bodyParser.json());
 
 // User Signup
 app.post("/api/signup", async (req, res) => {
+  const { email, password } = req.body;
   try {
     const userRecord = await admin.auth().createUser({
-      email: req.body.email,
-      password: req.body.password,
+      email,
+      password,
       emailVerified: false,
       disabled: false,
     });
     res.status(200).send({ uid: userRecord.uid });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: "Signup failed: " + error.message });
   }
 });
 
@@ -56,13 +48,12 @@ app.post("/api/login", async (req, res) => {
   try {
     if (idToken) {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const uid = decodedToken.uid;
-      res.status(200).send({ uid: uid });
+      res.status(200).send({ uid: decodedToken.uid });
     } else {
-      res.status(401).send({ error: "Unable to get ID token" });
+      res.status(401).send({ error: "ID token is missing" });
     }
   } catch (error) {
-    res.status(401).send({ error: error.message });
+    res.status(401).send({ error: "Invalid ID token: " + error.message });
   }
 });
 
@@ -71,32 +62,34 @@ app.post("/api/tasks", async (req, res) => {
   const { title, dueDate, description } = req.body;
   const uid = req.headers["authorization"]?.split(" ")[1];
 
+  if (!uid) {
+    return res.status(401).send({ error: "Unauthorized" });
+  }
+
   try {
     const newTask = {
-      title: title,
-      dueDate: dueDate,
-      description: description,
+      title,
+      dueDate,
+      description,
       status: "pending",
-      uid: uid,
+      uid,
+      createdAt: admin.firestore.Timestamp.now(),
     };
-    console.log(newTask);
 
     const docRef = db.collection("tasks").doc();
     await docRef.set(newTask);
 
     res.status(201).send({ id: docRef.id, ...newTask });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: "Failed to create task: " + error.message });
   }
 });
 
 // Get All Tasks
 app.get("/api/tasks/:uid", async (req, res) => {
   const uid = req.params.uid;
-  console.log(uid);
 
   try {
-    console.log(db.collection("tasks").get());
     const tasksSnapshot = await db
       .collection("tasks")
       .where("uid", "==", uid)
@@ -108,7 +101,7 @@ app.get("/api/tasks/:uid", async (req, res) => {
 
     res.status(200).send(tasks);
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: "Failed to fetch tasks: " + error.message });
   }
 });
 
@@ -117,6 +110,10 @@ app.post("/api/tasks/:id", async (req, res) => {
   const taskId = req.params.id;
   const { title, dueDate, description } = req.body;
   const uid = req.headers["authorization"]?.split(" ")[1];
+
+  if (!uid) {
+    return res.status(401).send({ error: "Unauthorized" });
+  }
 
   try {
     const taskRef = db.collection("tasks").doc(taskId);
@@ -127,12 +124,11 @@ app.post("/api/tasks/:id", async (req, res) => {
     }
 
     await taskRef.update({ title, dueDate, description });
-    console.log("ttts");
-
     const updatedTask = (await taskRef.get()).data();
+
     res.status(200).send({ id: taskId, ...updatedTask });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: "Failed to update task: " + error.message });
   }
 });
 
@@ -140,6 +136,10 @@ app.post("/api/tasks/:id", async (req, res) => {
 app.delete("/api/tasks/:id", async (req, res) => {
   const taskId = req.params.id;
   const uid = req.headers["authorization"]?.split(" ")[1];
+
+  if (!uid) {
+    return res.status(401).send({ error: "Unauthorized" });
+  }
 
   try {
     const taskRef = db.collection("tasks").doc(taskId);
@@ -152,7 +152,7 @@ app.delete("/api/tasks/:id", async (req, res) => {
     await taskRef.delete();
     res.status(200).send({ message: "Task deleted successfully" });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: "Failed to delete task: " + error.message });
   }
 });
 
