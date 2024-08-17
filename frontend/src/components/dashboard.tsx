@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
     try {
       const uid = sessionStorage.getItem("uid");
       const response = await axios.get(
-        `http://localhost:5000/api/tasks/${uid}`,
+        `https://basic-task-manager.onrender.com/api/tasks/${uid}`,
         {
           headers: { Authorization: `Bearer ${uid}` },
         }
@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
       if (selectedTask) {
         // Update task
         await axios.post(
-          `http://localhost:5000/api/tasks/${selectedTask.id}`,
+          `https://basic-task-manager.onrender.com/api/tasks/${selectedTask.id}`,
           task,
           {
             headers: { Authorization: `Bearer ${uid}` },
@@ -43,9 +43,13 @@ const Dashboard: React.FC = () => {
         setSuccess("Task updated successfully.");
       } else {
         // Create task
-        await axios.post("http://localhost:5000/api/tasks", task, {
-          headers: { Authorization: `Bearer ${uid}` },
-        });
+        await axios.post(
+          "https://basic-task-manager.onrender.com/api/tasks",
+          task,
+          {
+            headers: { Authorization: `Bearer ${uid}` },
+          }
+        );
         setSuccess("Task created successfully.");
       }
       setSelectedTask(null);
@@ -59,9 +63,12 @@ const Dashboard: React.FC = () => {
   const handleDeleteTask = async (id: string) => {
     try {
       const uid = sessionStorage.getItem("uid");
-      await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
-        headers: { Authorization: `Bearer ${uid}` },
-      });
+      await axios.delete(
+        `https://basic-task-manager.onrender.com/api/tasks/${id}`,
+        {
+          headers: { Authorization: `Bearer ${uid}` },
+        }
+      );
       setSuccess("Task deleted successfully.");
       fetchTasks();
     } catch (error) {

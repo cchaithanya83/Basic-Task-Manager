@@ -38,13 +38,16 @@ const Login: React.FC = () => {
       const idToken = await userCredential.user?.getIdToken();
 
       if (idToken) {
-        const response = await fetch("http://localhost:5000/api/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ idToken }),
-        });
+        const response = await fetch(
+          "https://basic-task-manager.onrender.com/api/login",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idToken }),
+          }
+        );
 
         const data = await response.json();
         if (response.ok) {
