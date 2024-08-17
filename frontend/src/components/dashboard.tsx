@@ -1,26 +1,36 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import TaskForm from "./taskform";
+
 const Dashboard: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    const uid = sessionStorage.getItem("uid");
+    if (!uid) {
+      navigate("/");
+    } else {
+      fetchTasks();
+    }
+  }, [navigate]);
 
   const fetchTasks = async () => {
     try {
       const uid = sessionStorage.getItem("uid");
-      const response = await axios.get(
-        `https://basic-task-manager.onrender.com/api/tasks/${uid}`,
-        {
-          headers: { Authorization: `Bearer ${uid}` },
-        }
-      );
-      setTasks(response.data);
+      if (uid) {
+        const response = await axios.get(
+          `https://basic-task-manager.onrender.com/api/tasks/${uid}`,
+          {
+            headers: { Authorization: `Bearer ${uid}` },
+          }
+        );
+        setTasks(response.data);
+      }
     } catch (error) {
       setError("Failed to fetch tasks.");
       console.error("Error fetching tasks:", error);
@@ -30,29 +40,30 @@ const Dashboard: React.FC = () => {
   const handleCreateOrUpdateTask = async (task: any) => {
     try {
       const uid = sessionStorage.getItem("uid");
-      if (selectedTask) {
-        // Update task
-        await axios.post(
-          `https://basic-task-manager.onrender.com/api/tasks/${selectedTask.id}`,
-          task,
-          {
-            headers: { Authorization: `Bearer ${uid}` },
-          }
-        );
-        setSuccess("Task updated successfully.");
-      } else {
-        // Create task
-        await axios.post(
-          "https://basic-task-manager.onrender.com/api/tasks",
-          task,
-          {
-            headers: { Authorization: `Bearer ${uid}` },
-          }
-        );
-        setSuccess("Task created successfully.");
+      if (uid) {
+        if (selectedTask) {
+          await axios.post(
+            `https://basic-task-manager.onrender.com/api/tasks/${selectedTask.id}`,
+            task,
+            {
+              headers: { Authorization: `Bearer ${uid}` },
+            }
+          );
+          setSuccess("Task updated successfully.");
+        } else {
+          // Create task
+          await axios.post(
+            "https://basic-task-manager.onrender.com/api/tasks",
+            task,
+            {
+              headers: { Authorization: `Bearer ${uid}` },
+            }
+          );
+          setSuccess("Task created successfully.");
+        }
+        setSelectedTask(null);
+        fetchTasks();
       }
-      setSelectedTask(null);
-      fetchTasks();
     } catch (error) {
       setError("Failed to save task.");
       console.error("Error saving task:", error);
@@ -62,14 +73,16 @@ const Dashboard: React.FC = () => {
   const handleDeleteTask = async (id: string) => {
     try {
       const uid = sessionStorage.getItem("uid");
-      await axios.delete(
-        `https://basic-task-manager.onrender.com/api/tasks/${id}`,
-        {
-          headers: { Authorization: `Bearer ${uid}` },
-        }
-      );
-      setSuccess("Task deleted successfully.");
-      fetchTasks();
+      if (uid) {
+        await axios.delete(
+          `https://basic-task-manager.onrender.com/api/tasks/${id}`,
+          {
+            headers: { Authorization: `Bearer ${uid}` },
+          }
+        );
+        setSuccess("Task deleted successfully.");
+        fetchTasks();
+      }
     } catch (error) {
       setError("Failed to delete task.");
       console.error("Error deleting task:", error);
