@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+
 const SignUp: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
   const handleSignUp = async () => {
     if (!email || !password) {
@@ -33,8 +34,13 @@ const SignUp: React.FC = () => {
         setError(data.error || "Signup failed.");
         setSuccess("");
       }
-    } catch (error) {
-      setError("An error occurred: " + (error.message || "Signup failed."));
+    } catch (err: unknown) {
+      // Assert the error to be of type Error
+      if (err instanceof Error) {
+        setError(`An error occurred: ${err.message || "Signup failed."}`);
+      } else {
+        setError("An unexpected error occurred.");
+      }
       setSuccess("");
     }
   };

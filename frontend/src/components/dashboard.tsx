@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import TaskForm from "./taskform";
-const apiUrl = import.meta.env.VITE_FIREBASE_API_KEY;
 const Dashboard: React.FC = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
